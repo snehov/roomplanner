@@ -1,0 +1,8 @@
+.resource-view table th{
+  background-color: red;
+  width: 20px;
+}
+.resource-view table tr td:first-child{
+  background-color: #b8d0ff;
+  width: 20px;
+}

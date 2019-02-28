@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
-import CalendarInfinite from "./Calendar/CalendarInfinite";
+//import CalendarInfinite from "./Calendar/CalendarInfinite";
 import Calendar from "./Calendar/Calendar";
-import logo from './logo.svg';
 //import './App.css';
 
 class App extends Component {

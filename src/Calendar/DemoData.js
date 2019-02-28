@@ -2,18 +2,18 @@ const DemoData = {
     resources: [
         {
             id: 'r1',
-            name: 'Resource1',
+            name: 'První',
         },
         {
             id: 'r2',
-            name: 'Resource2',
+            name: 'Druhý',
         },
         {
             id: 'r3',
-            name: 'Resource3',
+            name: 'Oba',
         },{
             id: 'rV',
-            name: 'void',
+            name: '--výplň--',
         },
      
     ],

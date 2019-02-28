@@ -1,14 +1,22 @@
 import React, {Component} from 'react'
-import {PropTypes} from 'prop-types' 
+//import {PropTypes} from 'prop-types' 
 import moment from 'moment'
 import 'moment/locale/cs';
 import 'react-big-scheduler/lib/css/style.css'
-import Scheduler, {SchedulerData, ViewTypes, DATE_FORMAT} from 'react-big-scheduler'
+import './myCss.css';
+import Scheduler, {SchedulerData, ViewTypes, /* DATE_FORMAT */} from 'react-big-scheduler'
 import DemoData from './DemoData'
 //import Nav from './Nav'
 import Tips from './Tips'
 import withDragDropContext from './withDnDContext'
 
+export const MIN_DAYS_TO_RESERVE = 3
+export const nights = (startDate, endDate)=>{
+    let start = moment(startDate);
+        let end = moment(endDate);
+        //console.log("NIGHTS", nights)
+        return end.diff(start, 'days') 
+}
 
 class Calendar extends Component{
     constructor(props){
@@ -105,7 +113,14 @@ class Calendar extends Component{
     };
 
     newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
-        if(window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)){
+      
+        if(nights( start, end)<MIN_DAYS_TO_RESERVE){
+            alert("minimální počet nocí jsou 3")          
+               
+            
+        }else  
+        //if(window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)){
+            {
 
             let newFreshId = 0;
             schedulerData.events.forEach((item) => {
@@ -121,6 +136,7 @@ class Calendar extends Component{
                 resourceId: slotId,
                 bgColor: 'purple'
             }
+            console.log("ADDED item: ",newEvent)
             schedulerData.addEvent(newEvent);
             this.setState({
                 viewModel: schedulerData
@@ -187,7 +203,7 @@ class Calendar extends Component{
         console.log('onScrollBottom');
     }
     conflictOccurred = (schedulerData, action, event, type, slotId, slotName, start, end) => {
-        alert(`Conflict occurred. {action: ${action}, event: ${event}`);
+        console.log(`Conflict occurred. {action: ${action}, event: ${event}`);
     }
 }
 
