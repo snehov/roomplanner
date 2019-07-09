@@ -14,7 +14,7 @@ import {
   BOOK_TIME_END,
   MIN_NIGHTS,
   EVENT_ITEM_HORIZONTAL_EDGE_PADDING,
-  LAST_ROW_HEIGHT
+  LAST_ROW_ADDED_HEIGHT
 } from '../config'
 import withDragDropContext from './withDnDContext'
 
@@ -35,11 +35,11 @@ class Calendar extends Component {
       checkConflict: true,
       nonAgendaDayCellHeaderFormat: 'D. M. HH:mm',
       nonAgendaOtherCellHeaderFormat: 'D. M',
-      minuteStep: 30,
+      eventItemLineHeight: 35,
       BOOK_TIME_START,
       BOOK_TIME_END,
-      EVENT_ITEM_HORIZONTAL_EDGE_PADDING, //eventItemHozitontalEdgePadding:
-      LAST_ROW_HEIGHT
+      EVENT_ITEM_HORIZONTAL_EDGE_PADDING,
+      LAST_ROW_ADDED_HEIGHT
     })
     schedulerData.localeMoment.locale('cs')
     schedulerData.setResources(DemoData.resources)
@@ -150,6 +150,7 @@ class Calendar extends Component {
     }
     //if(window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)){
     else {
+        window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)
       let newFreshId = 0
       schedulerData.events.forEach(item => {
         if (item.id >= newFreshId) newFreshId = item.id + 1
