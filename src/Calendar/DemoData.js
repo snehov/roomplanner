@@ -11,11 +11,11 @@ const DemoData = {
         {
             id: 'r3',
             name: 'Oba',
-        },{
+        }/* ,{
             id: 'rV',
             name: '--výplň--',
             disabled:true
-        },
+        }, */
      
     ],
     events: [

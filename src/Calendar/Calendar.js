@@ -14,6 +14,7 @@ import {
   BOOK_TIME_END,
   MIN_NIGHTS,
   EVENT_ITEM_HORIZONTAL_EDGE_PADDING,
+  LAST_ROW_HEIGHT
 } from '../config'
 import withDragDropContext from './withDnDContext'
 
@@ -38,6 +39,7 @@ class Calendar extends Component {
       BOOK_TIME_START,
       BOOK_TIME_END,
       EVENT_ITEM_HORIZONTAL_EDGE_PADDING, //eventItemHozitontalEdgePadding:
+      LAST_ROW_HEIGHT
     })
     schedulerData.localeMoment.locale('cs')
     schedulerData.setResources(DemoData.resources)
@@ -53,7 +55,7 @@ class Calendar extends Component {
       <div>
         {/* <Nav /> */}
         <div>
-          <h3 style={{ textAlign: 'center' }}>Basic example</h3>
+          <h3 style={{ textAlign: 'center' }}>Booking pokojů</h3>
           <Scheduler
             schedulerData={viewModel}
             prevClick={this.prevClick}
@@ -139,12 +141,12 @@ class Calendar extends Component {
       .add(1, 'second')
       .format(DATE_DB_FORMAT)
 
-    console.log('start', start, bookStart)
-    console.log('end', end, bookEnd)
+    //console.log('start', start, bookStart)
+    //console.log('end', end, bookEnd)
     /*  let bookStart=start;
     let bookEnd=end; */
     if (nights(start, end) < MIN_NIGHTS) {
-      alert('minimální počet nocí jsou 3')
+      alert('minimální počet nocí jsou '+MIN_NIGHTS)
     }
     //if(window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)){
     else {
@@ -155,7 +157,7 @@ class Calendar extends Component {
 
       let newEvent = {
         id: newFreshId,
-        title: 'New event you just created',
+        title: 'Your booking',
         start: bookStart,
         end: bookEnd,
         resourceId: slotId,
@@ -181,7 +183,37 @@ class Calendar extends Component {
         }
         /// tohle zdisabluje moznost obou pokoju..
         console.log('ADDED item: ', newCombineRoomEvent)
-        schedulerData.addEvent(newCombineRoomEvent)
+        let modified = false
+        schedulerData.events.forEach(item => {
+            if (item.resourceId ==="r3"){
+                if(moment(bookStart).isAfter(item.start) && moment(bookEnd).isBefore(item.end)){
+                    console.log("included, skip!!")
+                    modified=true
+                }else{
+                    if(moment(bookStart).isAfter(item.start) && moment(bookStart).isBefore(item.end)){
+                        console.log("overlap zprava!!")
+                        schedulerData.updateEventEnd(item, bookEnd);
+                        modified=true
+                    }
+                    if(moment(bookEnd).isAfter(item.start) && moment(bookEnd).isBefore(item.end)){
+                        console.log("overlap zleva!!")
+                        schedulerData.updateEventStart(item, bookStart);
+                        modified=true
+                    }
+                    if(moment(bookStart).isSame(item.end, 'day')){
+                        console.log("napojeni zprava!!")
+                        schedulerData.updateEventEnd(item, bookEnd);
+                        modified=true
+                    }
+                    if(moment(bookEnd).isSame(item.start, 'day')){
+                        console.log("napojeni zleva!!")
+                        schedulerData.updateEventStart(item, bookStart);
+                        modified=true
+                    }
+                }
+            }
+          })
+        !modified && schedulerData.addEvent(newCombineRoomEvent)
       }
       if (['r3'].includes(slotId)) {
         let r1OutDueToBoth = {
