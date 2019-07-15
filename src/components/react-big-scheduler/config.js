@@ -60,7 +60,7 @@ export default {
     relativeMove: true,
     defaultExpanded: true,
 
-    resourceName: 'Resource Name',
+    resourceName: 'Pokoj',
     taskName: 'Task Name',
     agendaViewHeader: 'Agenda',
     addMorePopoverHeaderFormat: 'MMM D, YYYY dddd',

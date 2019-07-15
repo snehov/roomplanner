@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { Component } from 'reactn'
 //import {PropTypes} from 'prop-types'
 import moment from 'moment'
 import 'moment/locale/cs'
@@ -7,6 +7,7 @@ import '../components/react-big-scheduler/css/style.css'
 import './myCss.css'
 import Scheduler, { SchedulerData, ViewTypes /* DATE_FORMAT */ } from '../components/react-big-scheduler'
 import DemoData from './DemoData'
+import { parseBookingToCalendar } from '../utils/parseData'
 //import Nav from './Nav'
 import Tips from './Tips'
 import {
@@ -15,9 +16,10 @@ import {
   BOOK_TIME_END,
   MIN_NIGHTS,
   EVENT_ITEM_HORIZONTAL_EDGE_PADDING,
-  LAST_ROW_ADDED_HEIGHT
+  LAST_ROW_ADDED_HEIGHT,
 } from '../config'
 import withDragDropContext from './withDnDContext'
+import { addBooking, checkBooking } from '../api'
 
 export const MIN_DAYS_TO_RESERVE = 3
 export const nights = (startDate, endDate) => {
@@ -40,14 +42,35 @@ class Calendar extends Component {
       BOOK_TIME_START,
       BOOK_TIME_END,
       EVENT_ITEM_HORIZONTAL_EDGE_PADDING,
-      LAST_ROW_ADDED_HEIGHT
+      LAST_ROW_ADDED_HEIGHT,
     })
     schedulerData.localeMoment.locale('cs')
     schedulerData.setResources(DemoData.resources)
-    schedulerData.setEvents(DemoData.events)
+    schedulerData.setEvents([])
     this.state = {
       viewModel: schedulerData,
     }
+  }
+  componentDidMount() {
+    //this.global.fetchData();
+    this.setGlobal(
+      fetch('http://localhost:3001/bookings')
+        .then(response => {
+          return response.text()
+        })
+        .then(html => {
+          let parsedData = parseBookingToCalendar(JSON.parse(html))
+          let schedulerData = this.state.viewModel
+          schedulerData.setEvents(parsedData)
+          this.setState({
+            viewModel: schedulerData,
+          })
+
+          /*  return {
+            eventsData: parsedData,
+          } */
+        }),
+    )
   }
 
   render() {
@@ -83,7 +106,21 @@ class Calendar extends Component {
       </div>
     )
   }
+  reloadBookedItems = () =>{
+    fetch('http://localhost:3001/bookings')
+        .then(response => {
+          return response.text()
+        })
+        .then(html => {
+          let parsedData = parseBookingToCalendar(JSON.parse(html))
+          let schedulerData = this.state.viewModel
+          schedulerData.setEvents(parsedData)
+          this.setState({
+            viewModel: schedulerData,
+          })
+        });
 
+  }
   prevClick = schedulerData => {
     schedulerData.prev()
     schedulerData.setEvents(DemoData.events)
@@ -118,7 +155,11 @@ class Calendar extends Component {
   }
 
   eventClicked = (schedulerData, event) => {
-    alert(`You just clicked an event: {id: ${event.id}, title: ${event.title}}`)
+    alert(
+      `You just clicked an event: {id: ${event.id}, title: ${event.title}, start:${event.start}, end: ${
+        event.end
+      }}`,
+    )
   }
 
   ops1 = (schedulerData, event) => {
@@ -132,7 +173,7 @@ class Calendar extends Component {
   addEvent = (...e) => {
     console.log('add event', e)
   }
-  newEvent = (schedulerData, slotId, slotName, start, end, type, item) => {
+  newEvent = async (schedulerData, slotId, slotName, start, end, type, item) => {
     let bookStart = moment(start)
       .add(BOOK_TIME_START, 'hours')
       .format(DATE_DB_FORMAT)
@@ -147,7 +188,7 @@ class Calendar extends Component {
     /*  let bookStart=start;
     let bookEnd=end; */
     if (nights(start, end) < MIN_NIGHTS) {
-      alert('minimální počet nocí jsou '+MIN_NIGHTS)
+      alert('minimální počet nocí jsou ' + MIN_NIGHTS)
     }
     //if(window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)){
     else {
@@ -170,70 +211,77 @@ class Calendar extends Component {
       }
       console.log('ADDED item: ', newEvent)
       schedulerData.addEvent(newEvent)
-
-      if (['r1', 'r2'].includes(slotId)) {
-        let newCombineRoomEvent = {
-          id: newFreshId + 1,
-          title: 'not available',
-          start: bookStart,
-          end: bookEnd,
-          resourceId: 'r3',
-          bgColor: 'gray',
-          showPopover: false,
-          movable: false,
-          resizable: false,
-        }
-        /// tohle zdisabluje moznost obou pokoju..
-        console.log('ADDED item: ', newCombineRoomEvent)
-        let modified = false
-        schedulerData.events.forEach(item => {
-            if (item.resourceId ==="r3"){
-                if(moment(bookStart).isAfter(item.start) && moment(bookEnd).isBefore(item.end)){
-                    console.log("included, skip!!")
-                    modified=true
-                }else{
-                    if(moment(bookStart).isAfter(item.start) && moment(bookStart).isBefore(item.end)){
-                        console.log("overlap zprava!!")
-                        schedulerData.updateEventEnd(item, bookEnd);
-                        modified=true
-                    }
-                    if(moment(bookEnd).isAfter(item.start) && moment(bookEnd).isBefore(item.end)){
-                        console.log("overlap zleva!!")
-                        schedulerData.updateEventStart(item, bookStart);
-                        modified=true
-                    }
-                    if(moment(bookStart).isSame(item.end, 'day')){
-                        console.log("napojeni zprava!!")
-                        schedulerData.updateEventEnd(item, bookEnd);
-                        modified=true
-                    }
-                    if(moment(bookEnd).isSame(item.start, 'day')){
-                        console.log("napojeni zleva!!")
-                        schedulerData.updateEventStart(item, bookStart);
-                        modified=true
-                    }
+      //console.log("api", api)
+      const apiResponse =  await addBooking(newEvent)//.then(res=>console.log("apires", res))
+      console.log('apiresponse', apiResponse)
+      //const checkResponse = await checkBooking(newEvent).then(res => console.log('apires', res))
+      if (apiResponse.data.error) {
+        console.log('CHYBA', apiResponse.data)
+        apiResponse.data.error ==="time-slot-taken" && this.reloadBookedItems();
+      } else {
+        if (['r1', 'r2'].includes(slotId)) {
+          let newCombineRoomEvent = {
+            id: newFreshId + 1,
+            title: 'not available',
+            start: bookStart,
+            end: bookEnd,
+            resourceId: 'r3',
+            bgColor: 'gray',
+            showPopover: false,
+            movable: false,
+            resizable: false,
+          }
+          /// tohle zdisabluje moznost obou pokoju..
+          console.log('ADDED item: ', newCombineRoomEvent)
+          let modified = false
+          schedulerData.events.forEach(item => {
+            if (item.resourceId === 'r3') {
+              if (moment(bookStart).isAfter(item.start) && moment(bookEnd).isBefore(item.end)) {
+                console.log('included, skip!!')
+                modified = true
+              } else {
+                if (moment(bookStart).isAfter(item.start) && moment(bookStart).isBefore(item.end)) {
+                  console.log('overlap zprava!!')
+                  schedulerData.updateEventEnd(item, bookEnd)
+                  modified = true
                 }
+                if (moment(bookEnd).isAfter(item.start) && moment(bookEnd).isBefore(item.end)) {
+                  console.log('overlap zleva!!')
+                  schedulerData.updateEventStart(item, bookStart)
+                  modified = true
+                }
+                if (moment(bookStart).isSame(item.end, 'day')) {
+                  console.log('napojeni zprava!!')
+                  schedulerData.updateEventEnd(item, bookEnd)
+                  modified = true
+                }
+                if (moment(bookEnd).isSame(item.start, 'day')) {
+                  console.log('napojeni zleva!!')
+                  schedulerData.updateEventStart(item, bookStart)
+                  modified = true
+                }
+              }
             }
           })
-        !modified && schedulerData.addEvent(newCombineRoomEvent)
-      }
-      if (['r3'].includes(slotId)) {
-        let r1OutDueToBoth = {
-          id: newFreshId + 1,
-          title: 'not available',
-          start: bookStart,
-          end: bookEnd,
-          resourceId: 'r1',
-          bgColor: 'gray',
-          showPopover: false,
-          movable: false,
-          resizable: false,
+          !modified && schedulerData.addEvent(newCombineRoomEvent)
         }
-        /// tohle zdisabluje moznost obou pokoju..
-        console.log('ADDED item: ', r1OutDueToBoth)
-        schedulerData.addEvent(r1OutDueToBoth)
+        if (['r3'].includes(slotId)) {
+          let r1OutDueToBoth = {
+            id: newFreshId + 1,
+            title: 'not available',
+            start: bookStart,
+            end: bookEnd,
+            resourceId: 'r1',
+            bgColor: 'gray',
+            showPopover: false,
+            movable: false,
+            resizable: false,
+          }
+          /// tohle zdisabluje moznost obou pokoju..
+          //console.log('ADDED item: ', r1OutDueToBoth)
+          schedulerData.addEvent(r1OutDueToBoth)
 
-        let r2OutDueToBoth = {
+          let r2OutDueToBoth = {
             id: newFreshId + 2,
             title: 'not available',
             start: bookStart,
@@ -245,13 +293,14 @@ class Calendar extends Component {
             resizable: false,
           }
           /// tohle zdisabluje moznost obou pokoju..
-          console.log('ADDED item: ', r2OutDueToBoth)
+          //console.log('ADDED item: ', r2OutDueToBoth)
           schedulerData.addEvent(r2OutDueToBoth)
-      }
+        }
 
-      this.setState({
-        viewModel: schedulerData,
-      })
+        this.setState({
+          viewModel: schedulerData,
+        })
+      }
     }
   }
 

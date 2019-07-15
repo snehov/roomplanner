@@ -1,24 +1,66 @@
 const DemoData = {
-    resources: [
-        {
-            id: 'r1',
-            name: 'První',
-        },
-        {
-            id: 'r2',
-            name: 'Druhý',
-        },
-        {
-            id: 'r3',
-            name: 'Oba',
-        }/* ,{
+  resources: [
+    {
+      id: 'r1',
+      name: 'První',
+    },
+    {
+      id: 'r2',
+      name: 'Druhý',
+    },
+    {
+      id: 'r3',
+      name: 'Oba',
+    } /* ,{
             id: 'rV',
             name: '--výplň--',
             disabled:true
-        }, */
-     
-    ],
-    events: [
+        }, */,
+  ],
+  events: [
+    {id:1,resourceId:"r1",start:"2017-12-04 13:00:00",end:"2017-12-06 09:00:00",
+    bgColor: '#D9D9D9',
+    showPopover: false,
+    movable: false,
+    resizable: false,
+    title: 'iam booked',},
+    {id:3,resourceId:"r1",start:"2017-12-06 13:00:00",end:"2017-12-09 09:00:00",
+      bgColor: '#D9D9D9',
+      showPopover: false,
+      movable: false,
+      resizable: false,
+      title: 'iam booked',},
+    {id:2,resourceId:"r1",start:"2017-12-09 13:00:00",end:"2017-12-12 09:00:00",
+      bgColor: '#D9D9D9',
+      showPopover: false,
+      movable: false,
+      resizable: false,
+      title: 'iam booked',}
+    
+    /* {
+      id: 1,
+      start: '2017-12-06 14:00:00',
+      end: '2017-12-09 10:00:00',
+      resourceId: "r1",
+      bgColor: '#D9D9D9',
+      showPopover: false,
+      movable: false,
+      resizable: false,
+      title: 'iam booked',
+    },
+    {
+      id: 2,
+      start: '2017-12-08 14:00:00',
+      end: '2017-12-11 10:00:00',
+      resourceId: "r2",
+      bgColor: '#D9D9D9',
+      showPopover: false,
+      movable: false,
+      resizable: false,
+      title: 'iam booked',
+    }, */
+  ],
+  /* [
         {
             id: 1,
             start: '2017-12-18 09:30:00',
@@ -109,8 +151,7 @@ const DemoData = {
             resourceId: 'r1',
             title: 'R1 has many tasks 6'
         },
-    ],
-    
+    ] */
 }
 
 export default DemoData

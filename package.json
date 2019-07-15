@@ -3,18 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "antd": "^3.16.6",
+    "axios": "^0.19.0",
+    "cpy": "^3.4.1",
     "moment": "^2.24.0",
+    "prop-types": "^15.7.2",
     "react": "^16.8.3",
     "react-big-scheduler": "^0.2.6",
-    "react-dom": "^16.8.3",
-    "react-scripts": "^3.0.1",
-
-    "antd": "^3.16.6",
-    "cpy": "^3.4.1",
-    "prop-types": "^15.7.2",
     "react-dnd": "^7.4.5",
     "react-dnd-html5-backend": "^7.4.4",
-    "rrule": "^2.6.0"
+    "react-dom": "^16.8.3",
+    "react-scripts": "^3.0.1",
+    "reactn": "^2.1.4",
+    "rrule": "^2.6.0",
+    "styled-components": "^4.3.2"
   },
   "scripts": {
     "start": "react-scripts start",
