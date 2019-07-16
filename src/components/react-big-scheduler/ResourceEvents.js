@@ -192,7 +192,7 @@ class ResourceEvents extends Component {
             let end = schedulerData.viewType === 0 ? localeMoment(endTime) : localeMoment(endTime).hour(config.BOOK_TIME_END);
 
             events.forEach((e) =>{
-                if((schedulerData._getEventSlotId(e) === slotId)/*  && (schedulerData._getEventSlotId(e) !== "r3" )*/) {
+                if((schedulerData._getEventSlotId(e) === slotId)) {
                     let eStart = localeMoment(e.start),
                         eEnd = localeMoment(e.end);
                     if((start >= eStart && start < eEnd) || (end > eStart && end <= eEnd) || (eStart >= start && eStart < end) || (eEnd > start && eEnd <= end)){

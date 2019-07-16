@@ -18,25 +18,6 @@ const DemoData = {
         }, */,
   ],
   events: [
-    {id:1,resourceId:"r1",start:"2017-12-04 13:00:00",end:"2017-12-06 09:00:00",
-    bgColor: '#D9D9D9',
-    showPopover: false,
-    movable: false,
-    resizable: false,
-    title: 'iam booked',},
-    {id:3,resourceId:"r1",start:"2017-12-06 13:00:00",end:"2017-12-09 09:00:00",
-      bgColor: '#D9D9D9',
-      showPopover: false,
-      movable: false,
-      resizable: false,
-      title: 'iam booked',},
-    {id:2,resourceId:"r1",start:"2017-12-09 13:00:00",end:"2017-12-12 09:00:00",
-      bgColor: '#D9D9D9',
-      showPopover: false,
-      movable: false,
-      resizable: false,
-      title: 'iam booked',}
-    
     /* {
       id: 1,
       start: '2017-12-06 14:00:00',

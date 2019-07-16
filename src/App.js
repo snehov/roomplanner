@@ -12,17 +12,13 @@ setGlobal({warningModal:{opened:false, content:"", header:""}})
 const App = () => {
   const [bookingModalOpened, setBookingModalOpen] = useGlobal('bookingModalOpened')
   const [warningModal, setWarningModalProps] = useGlobal('warningModal')
-  console.log('bookingModalOpened', bookingModalOpened)
   return (
     <div className="App">
       {bookingModalOpened && <BookingModal onClose={() => setBookingModalOpen(false)} />}
       {warningModal.opened && <WarningModal onClose={() => setWarningModalProps({opened:false})} />}
-      <header className="App-header">
         {/* <CalendarInfinite />  */}
-        <hr />
         {/* <Calendar_from_node/>     */}
         <Calendar />
-      </header>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import React, { Component } from 'reactn'
-import { useGlobal,setGlobal, addReducer } from 'reactn'
+import { useGlobal, setGlobal, addReducer } from 'reactn'
 //import {PropTypes} from 'prop-types'
 import moment from 'moment'
 import 'moment/locale/cs'
@@ -10,7 +10,6 @@ import Scheduler, { SchedulerData, ViewTypes /* DATE_FORMAT */ } from '../compon
 import DemoData from './DemoData'
 import { parseBookingToCalendar } from '../utils/parseData'
 //import Nav from './Nav'
-import Tips from './Tips'
 import {
   DATE_DB_FORMAT,
   BOOK_TIME_START,
@@ -20,22 +19,15 @@ import {
   LAST_ROW_ADDED_HEIGHT,
 } from '../config'
 import withDragDropContext from './withDnDContext'
-import { addBooking, checkBooking } from '../api'
-
-export const MIN_DAYS_TO_RESERVE = 3
-export const nights = (startDate, endDate) => {
-  let start = moment(startDate)
-  let end = moment(endDate)
-  //console.log("NIGHTS", nights)
-  return end.diff(start, 'days')
-}
+import { addBooking, checkBooking, fetchBookings } from '../api'
+import { addVirtualBookingToCalendar, getNewLocalId } from '../utils/generateVirtualBookings'
+import { newCreatedEvent, rooms } from '../utils/bookSlotFormats'
+import { nights, setCheckInTime, setCheckOutTime, isInFuture } from '../utils/dateOperations'
 
 class Calendar extends Component {
   constructor(props) {
     super(props)
-
-    //let schedulerData = new SchedulerData(new moment("2017-12-18").format(DATE_FORMAT), ViewTypes.Week);
-    let schedulerData = new SchedulerData('2017-12-18', ViewTypes.Month, false, false, {
+    let schedulerData = new SchedulerData(new moment().format(DATE_DB_FORMAT), ViewTypes.Year, false, false, {
       checkConflict: true,
       nonAgendaDayCellHeaderFormat: 'D. M. HH:mm',
       nonAgendaOtherCellHeaderFormat: 'D. M',
@@ -46,31 +38,25 @@ class Calendar extends Component {
       LAST_ROW_ADDED_HEIGHT,
     })
     schedulerData.localeMoment.locale('cs')
-    schedulerData.setResources(DemoData.resources)
+    schedulerData.setResources(rooms)
     schedulerData.setEvents([])
     this.state = {
       viewModel: schedulerData,
     }
   }
   componentDidMount() {
-    //this.global.fetchData();
     this.setGlobal(
-      fetch('http://localhost:3001/bookings')
-        .then(response => {
-          return response.text()
+      fetchBookings().then(response => {
+        let parsedData = parseBookingToCalendar(response.data)
+        let schedulerData = this.state.viewModel
+        schedulerData.setEvents(parsedData)
+        this.setState({
+          viewModel: schedulerData,
         })
-        .then(html => {
-          let parsedData = parseBookingToCalendar(JSON.parse(html))
-          let schedulerData = this.state.viewModel
-          schedulerData.setEvents(parsedData)
-          this.setState({
-            viewModel: schedulerData,
-          })
-
-          /*  return {
-            eventsData: parsedData,
-          } */
-        }),
+        return {
+          eventsData: parsedData,
+        }
+      }),
     )
   }
 
@@ -95,7 +81,6 @@ class Calendar extends Component {
             updateEventStart={this.updateEventStart}
             updateEventEnd={this.updateEventEnd}
             moveEvent={this.moveEvent}
-            addEvent={this.addEvent}
             newEvent={this.newEvent}
             onScrollLeft={this.onScrollLeft}
             onScrollRight={this.onScrollRight}
@@ -107,21 +92,78 @@ class Calendar extends Component {
       </div>
     )
   }
-  reloadBookedItems = () =>{
-    fetch('http://localhost:3001/bookings')
-        .then(response => {
-          return response.text()
-        })
-        .then(html => {
-          let parsedData = parseBookingToCalendar(JSON.parse(html))
-          let schedulerData = this.state.viewModel
-          schedulerData.setEvents(parsedData)
-          this.setState({
-            viewModel: schedulerData,
-          })
-        });
-
+  reloadBookedItems = () => {
+    fetchBookings().then(response => {
+      let parsedData = parseBookingToCalendar(response.data)
+      let schedulerData = this.state.viewModel
+      schedulerData.setEvents(parsedData)
+      this.setState({
+        viewModel: schedulerData,
+      })
+      setGlobal({ eventsData: parsedData })
+    })
   }
+
+  newEvent = async (schedulerData, slotId, slotName, start, end, type, item) => {
+    let bookStart = setCheckInTime(start)
+    let bookEnd = setCheckOutTime(end)
+
+    if (!isInFuture(bookStart)) {
+      setGlobal({
+        warningModal: { opened: true, content: 'datum začíná v minulosti', header: 'Neplatné datum' },
+      })
+    } else if (nights(start, end) < MIN_NIGHTS) {
+      setGlobal({
+        warningModal: {
+          opened: true,
+          content: `minimální počet nocí jsou${MIN_NIGHTS}`,
+          header: 'Není možné',
+        },
+      })
+    } else {
+      //window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)
+      getNewLocalId(schedulerData)
+
+      let newEvent = {
+        ...newCreatedEvent,
+        id: getNewLocalId(schedulerData),
+        start: bookStart,
+        end: bookEnd,
+        resourceId: slotId,
+      }
+      schedulerData.addEvent(newEvent)
+      console.log('ADDED item: ', newEvent)
+      // TODO: be optimistic UI, dont let user wait for this api response
+      const apiResponse = await addBooking(newEvent) //.then(res=>console.log("apires", res))
+      console.log('apiresponse', apiResponse.data)
+      //const checkResponse = await checkBooking(newEvent).then(res => console.log('apires', res))
+      if (apiResponse.data.error) {
+        console.log('CHYBA', apiResponse.data)
+        apiResponse.data.error === 'time-slot-taken' && this.reloadBookedItems()
+      } else {
+        addVirtualBookingToCalendar(schedulerData, newEvent)
+        setGlobal({ bookingModalOpened: true })
+
+        /*  this.setState({
+          viewModel: schedulerData,
+        }) */
+      }
+    }
+  }
+
+  conflictOccurred = (schedulerData, action, event, type, slotId, slotName, start, end) => {
+    console.log(`Conflict occurred.`, schedulerData, action, event, type, slotId, slotName, start, end)
+    //setGlobal({ warningModal: { opened: true, content: 'překryv', header: 'nelze!' } })
+  }
+
+  eventClicked = (schedulerData, event) => {
+    /* alert(
+      `You just clicked an event: {id: ${event.id}, title: ${event.title}, start:${event.start}, end: ${
+        event.end
+      }}`,
+    ) */
+  }
+
   prevClick = schedulerData => {
     schedulerData.prev()
     schedulerData.setEvents(DemoData.events)
@@ -140,7 +182,7 @@ class Calendar extends Component {
 
   onViewChange = (schedulerData, view) => {
     schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective)
-    schedulerData.setEvents(DemoData.events)
+    schedulerData.setEvents(this.global.eventsData)
     this.setState({
       viewModel: schedulerData,
     })
@@ -155,155 +197,12 @@ class Calendar extends Component {
     })
   }
 
-  eventClicked = (schedulerData, event) => {
-    alert(
-      `You just clicked an event: {id: ${event.id}, title: ${event.title}, start:${event.start}, end: ${
-        event.end
-      }}`,
-    )
-  }
-
   ops1 = (schedulerData, event) => {
     alert(`You just executed ops1 to event: {id: ${event.id}, title: ${event.title}}`)
   }
 
   ops2 = (schedulerData, event) => {
     alert(`You just executed ops2 to event: {id: ${event.id}, title: ${event.title}}`)
-  }
-
-  addEvent = (...e) => {
-    console.log('add event', e)
-  }
-  newEvent = async (schedulerData, slotId, slotName, start, end, type, item) => {
-    let bookStart = moment(start)
-      .add(BOOK_TIME_START, 'hours')
-      .format(DATE_DB_FORMAT)
-
-    let bookEnd = moment(end)
-      .add(-(24 - BOOK_TIME_END), 'hours')
-      .add(1, 'second')
-      .format(DATE_DB_FORMAT)
-
-    //console.log('start', start, bookStart)
-    //console.log('end', end, bookEnd)
-    /*  let bookStart=start;
-    let bookEnd=end; */
-    if (nights(start, end) < MIN_NIGHTS) {
-      alert('minimální počet nocí jsou ' + MIN_NIGHTS)
-    }
-    //if(window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)){
-    else {
-      setGlobal({bookingModalOpened:true})
-      //window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)
-      let newFreshId = 0
-      schedulerData.events.forEach(item => {
-        if (item.id >= newFreshId) newFreshId = item.id + 1
-      })
-
-      let newEvent = {
-        id: newFreshId,
-        title: 'Your booking',
-        start: bookStart,
-        end: bookEnd,
-        resourceId: slotId,
-        bgColor: 'purple',
-        showPopover: false,
-        movable: false,
-        resizable: false,
-      }
-      console.log('ADDED item: ', newEvent)
-      schedulerData.addEvent(newEvent)
-      //console.log("api", api)
-      const apiResponse =  await addBooking(newEvent)//.then(res=>console.log("apires", res))
-      console.log('apiresponse', apiResponse)
-      //const checkResponse = await checkBooking(newEvent).then(res => console.log('apires', res))
-      if (apiResponse.data.error) {
-        console.log('CHYBA', apiResponse.data)
-        apiResponse.data.error ==="time-slot-taken" && this.reloadBookedItems();
-      } else {
-        if (['r1', 'r2'].includes(slotId)) {
-          let newCombineRoomEvent = {
-            id: newFreshId + 1,
-            title: 'not available',
-            start: bookStart,
-            end: bookEnd,
-            resourceId: 'r3',
-            bgColor: 'gray',
-            showPopover: false,
-            movable: false,
-            resizable: false,
-          }
-          /// tohle zdisabluje moznost obou pokoju..
-          console.log('ADDED item: ', newCombineRoomEvent)
-          let modified = false
-          schedulerData.events.forEach(item => {
-            if (item.resourceId === 'r3') {
-              if (moment(bookStart).isAfter(item.start) && moment(bookEnd).isBefore(item.end)) {
-                console.log('included, skip!!')
-                modified = true
-              } else {
-                if (moment(bookStart).isAfter(item.start) && moment(bookStart).isBefore(item.end)) {
-                  console.log('overlap zprava!!')
-                  schedulerData.updateEventEnd(item, bookEnd)
-                  modified = true
-                }
-                if (moment(bookEnd).isAfter(item.start) && moment(bookEnd).isBefore(item.end)) {
-                  console.log('overlap zleva!!')
-                  schedulerData.updateEventStart(item, bookStart)
-                  modified = true
-                }
-                if (moment(bookStart).isSame(item.end, 'day')) {
-                  console.log('napojeni zprava!!')
-                  schedulerData.updateEventEnd(item, bookEnd)
-                  modified = true
-                }
-                if (moment(bookEnd).isSame(item.start, 'day')) {
-                  console.log('napojeni zleva!!')
-                  schedulerData.updateEventStart(item, bookStart)
-                  modified = true
-                }
-              }
-            }
-          })
-          !modified && schedulerData.addEvent(newCombineRoomEvent)
-        }
-        if (['r3'].includes(slotId)) {
-          let r1OutDueToBoth = {
-            id: newFreshId + 1,
-            title: 'not available',
-            start: bookStart,
-            end: bookEnd,
-            resourceId: 'r1',
-            bgColor: 'gray',
-            showPopover: false,
-            movable: false,
-            resizable: false,
-          }
-          /// tohle zdisabluje moznost obou pokoju..
-          //console.log('ADDED item: ', r1OutDueToBoth)
-          schedulerData.addEvent(r1OutDueToBoth)
-
-          let r2OutDueToBoth = {
-            id: newFreshId + 2,
-            title: 'not available',
-            start: bookStart,
-            end: bookEnd,
-            resourceId: 'r2',
-            bgColor: 'gray',
-            showPopover: false,
-            movable: false,
-            resizable: false,
-          }
-          /// tohle zdisabluje moznost obou pokoju..
-          //console.log('ADDED item: ', r2OutDueToBoth)
-          schedulerData.addEvent(r2OutDueToBoth)
-        }
-
-        this.setState({
-          viewModel: schedulerData,
-        })
-      }
-    }
   }
 
   updateEventStart = (schedulerData, event, newStart) => {
@@ -355,19 +254,6 @@ class Calendar extends Component {
 
       schedulerContent.scrollLeft = 10
     }
-  }
-
-  onScrollTop = (schedulerData, schedulerContent, maxScrollTop) => {
-    console.log('onScrollTop')
-  }
-
-  onScrollBottom = (schedulerData, schedulerContent, maxScrollTop) => {
-    console.log('onScrollBottom')
-  }
-  conflictOccurred = (schedulerData, action, event, type, slotId, slotName, start, end) => {
-    console.log(`Conflict occurred.`, schedulerData, action, event, type, slotId, slotName, start, end)
-    //setGlobal({warningModalOpened:true, warningModalContent:"překryv", warningModalHeader:"nelze!"})
-    setGlobal({warningModal:{opened:true,content:"překryv", header:"nelze!"}})
   }
 }
 
