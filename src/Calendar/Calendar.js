@@ -1,4 +1,5 @@
 import React, { Component } from 'reactn'
+import { useGlobal,setGlobal, addReducer } from 'reactn'
 //import {PropTypes} from 'prop-types'
 import moment from 'moment'
 import 'moment/locale/cs'
@@ -192,6 +193,7 @@ class Calendar extends Component {
     }
     //if(window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)){
     else {
+      setGlobal({bookingModalOpened:true})
       //window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)
       let newFreshId = 0
       schedulerData.events.forEach(item => {
@@ -364,6 +366,8 @@ class Calendar extends Component {
   }
   conflictOccurred = (schedulerData, action, event, type, slotId, slotName, start, end) => {
     console.log(`Conflict occurred.`, schedulerData, action, event, type, slotId, slotName, start, end)
+    //setGlobal({warningModalOpened:true, warningModalContent:"překryv", warningModalHeader:"nelze!"})
+    setGlobal({warningModal:{opened:true,content:"překryv", header:"nelze!"}})
   }
 }
 
