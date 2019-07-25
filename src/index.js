@@ -1,8 +1,13 @@
-import React from 'react';
+//import React from 'react';
+import React from 'reactn';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
+
+import addReactNDevTools from 'reactn-devtools';
+
+addReactNDevTools();
 
 ReactDOM.render(<App />, document.getElementById('root'));
 

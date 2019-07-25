@@ -1,5 +1,5 @@
 import React, { Component } from 'reactn'
-import { useGlobal, setGlobal, addReducer } from 'reactn'
+import { useGlobal, setGlobal, addReducer, useDispatch, getDispatch, addCallback } from 'reactn'
 //import {PropTypes} from 'prop-types'
 import moment from 'moment'
 import 'moment/locale/cs'
@@ -23,6 +23,7 @@ import { addBooking, checkBooking, fetchBookings } from '../api'
 import { addVirtualBookingToCalendar, getNewLocalId } from '../utils/generateVirtualBookings'
 import { newCreatedEvent, rooms } from '../utils/bookSlotFormats'
 import { nights, setCheckInTime, setCheckOutTime, isInFuture } from '../utils/dateOperations'
+import '../reducers/bookDataReducer'
 
 class Calendar extends Component {
   constructor(props) {
@@ -44,20 +45,9 @@ class Calendar extends Component {
       viewModel: schedulerData,
     }
   }
+
   componentDidMount() {
-    this.setGlobal(
-      fetchBookings().then(response => {
-        let parsedData = parseBookingToCalendar(response.data)
-        let schedulerData = this.state.viewModel
-        schedulerData.setEvents(parsedData)
-        this.setState({
-          viewModel: schedulerData,
-        })
-        return {
-          eventsData: parsedData,
-        }
-      }),
-    )
+    this.reloadBookedItems()
   }
 
   render() {
@@ -93,14 +83,16 @@ class Calendar extends Component {
     )
   }
   reloadBookedItems = () => {
-    fetchBookings().then(response => {
-      let parsedData = parseBookingToCalendar(response.data)
-      let schedulerData = this.state.viewModel
-      schedulerData.setEvents(parsedData)
-      this.setState({
-        viewModel: schedulerData,
-      })
-      setGlobal({ eventsData: parsedData })
+    this.dispatch.getBookingData().then(data => {
+      console.log('dispatch data', data.eventsData)
+      this.reloadBookedItemsApply()
+    })
+  }
+  reloadBookedItemsApply = () => {
+    let schedulerData = this.state.viewModel
+    schedulerData.setEvents(this.global.eventsData)
+    this.setState({
+      viewModel: schedulerData,
     })
   }
 
@@ -133,20 +125,15 @@ class Calendar extends Component {
       }
       schedulerData.addEvent(newEvent)
       console.log('ADDED item: ', newEvent)
-      // TODO: be optimistic UI, dont let user wait for this api response
-      const apiResponse = await addBooking(newEvent) //.then(res=>console.log("apires", res))
-      console.log('apiresponse', apiResponse.data)
-      //const checkResponse = await checkBooking(newEvent).then(res => console.log('apires', res))
-      if (apiResponse.data.error) {
-        console.log('CHYBA', apiResponse.data)
-        apiResponse.data.error === 'time-slot-taken' && this.reloadBookedItems()
-      } else {
-        addVirtualBookingToCalendar(schedulerData, newEvent)
-        setGlobal({ bookingModalOpened: true })
 
-        /*  this.setState({
-          viewModel: schedulerData,
-        }) */
+      addVirtualBookingToCalendar(schedulerData, newEvent)
+      setGlobal({ bookingModalOpened: true })
+      const checkResponse = await addBooking(newEvent) // checkBooking or addBooking
+      console.log('checkResponse', checkResponse)
+      if (checkResponse.data.error === 'time-slot-taken') {
+        setGlobal({ bookingModalOpened: false })
+        setGlobal({ warningModal: { opened: true, content: 'aktualizovany překryv', header: 'nelze!' } })
+        this.reloadBookedItems()
       }
     }
   }
