@@ -127,8 +127,9 @@ class Calendar extends Component {
       console.log('ADDED item: ', newEvent)
 
       addVirtualBookingToCalendar(schedulerData, newEvent)
-      setGlobal({ bookingModalOpened: true })
-      const checkResponse = await addBooking(newEvent) // checkBooking or addBooking
+      setGlobal({ newBookingEvent: newEvent })
+      //setGlobal({ bookingModalOpened: true })
+      const checkResponse = await checkBooking(newEvent) // checkBooking or addBooking
       console.log('checkResponse', checkResponse)
       if (checkResponse.data.error === 'time-slot-taken') {
         setGlobal({ bookingModalOpened: false })
