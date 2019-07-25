@@ -1,5 +1,4 @@
 import React, { Component } from 'reactn'
-import { useGlobal, setGlobal, addReducer, useDispatch, getDispatch, addCallback } from 'reactn'
 //import {PropTypes} from 'prop-types'
 import moment from 'moment'
 import 'moment/locale/cs'
@@ -8,8 +7,6 @@ import '../components/react-big-scheduler/css/style.css'
 import './myCss.css'
 import Scheduler, { SchedulerData, ViewTypes /* DATE_FORMAT */ } from '../components/react-big-scheduler'
 import DemoData from './DemoData'
-import { parseBookingToCalendar } from '../utils/parseData'
-//import Nav from './Nav'
 import {
   DATE_DB_FORMAT,
   BOOK_TIME_START,
@@ -19,11 +16,9 @@ import {
   LAST_ROW_ADDED_HEIGHT,
 } from '../config'
 import withDragDropContext from './withDnDContext'
-import { addBooking, checkBooking, fetchBookings } from '../api'
 import { addVirtualBookingToCalendar, getNewLocalId } from '../utils/generateVirtualBookings'
 import { newCreatedEvent, rooms } from '../utils/bookSlotFormats'
 import { nights, setCheckInTime, setCheckOutTime, isInFuture } from '../utils/dateOperations'
-import '../reducers/bookDataReducer'
 
 class Calendar extends Component {
   constructor(props) {
@@ -54,7 +49,6 @@ class Calendar extends Component {
     const { viewModel } = this.state
     return (
       <div>
-        {/* <Nav /> */}
         <div>
           <h3 style={{ textAlign: 'center' }}>Booking pokojů</h3>
           <Scheduler
@@ -65,61 +59,42 @@ class Calendar extends Component {
             onViewChange={this.onViewChange}
             eventItemClick={this.eventClicked}
             viewEventClick={this.ops1}
-            viewEventText="Ops 1"
-            viewEvent2Text="Ops 2"
             viewEvent2Click={this.ops2}
             updateEventStart={this.updateEventStart}
             updateEventEnd={this.updateEventEnd}
             moveEvent={this.moveEvent}
             newEvent={this.newEvent}
-            onScrollLeft={this.onScrollLeft}
-            onScrollRight={this.onScrollRight}
-            onScrollTop={this.onScrollTop}
-            onScrollBottom={this.onScrollBottom}
             conflictOccurred={this.conflictOccurred}
           />
         </div>
       </div>
     )
   }
-  reloadBookedItems = () => {
-    this.dispatch.getBookingData().then(data => {
-      console.log('dispatch data', data.eventsData)
-      this.reloadBookedItemsApply()
-    })
-  }
-  reloadBookedItemsApply = () => {
-    let schedulerData = this.state.viewModel
-    schedulerData.setEvents(this.global.eventsData)
-    this.calendarUpdate(schedulerData)
-   
-  }
-  calendarUpdate = (schedulerData) => {
+  calendarUpdate = schedulerData => {
     this.setState({
       viewModel: schedulerData,
     })
   }
+
+  reloadBookedItems = () => {
+    this.dispatch.getBookingData().then(data => {
+      this.reloadBookedItemsApply()
+    })
+  }
+
+  reloadBookedItemsApply = () => {
+    let schedulerData = this.state.viewModel
+    schedulerData.setEvents(this.global.eventsData)
+    this.calendarUpdate(schedulerData)
+  }
+
   newEvent = async (schedulerData, slotId, slotName, start, end, type, item) => {
     schedulerData.removeEvent(this.global.newBookingEvent)
     let bookStart = setCheckInTime(start)
     let bookEnd = setCheckOutTime(end)
 
-    if (!isInFuture(bookStart)) {
-      setGlobal({
-        warningModal: { opened: true, content: 'datum začíná v minulosti', header: 'Neplatné datum' },
-      })
-    } else if (nights(start, end) < MIN_NIGHTS) {
-      setGlobal({
-        warningModal: {
-          opened: true,
-          content: `minimální počet nocí jsou${MIN_NIGHTS}`,
-          header: 'Není možné',
-        },
-      })
-    } else {
-      //window.confirm(`Do you want to create a new event? {slotId: ${slotId}, slotName: ${slotName}, start: ${start}, end: ${end}, type: ${type}, item: ${item}}`)
+    if (this.checkEventPosibility('WARNING', { start: bookStart, end: bookEnd, slotId })) {
       getNewLocalId(schedulerData)
-
       let newEvent = {
         ...newCreatedEvent,
         id: getNewLocalId(schedulerData),
@@ -129,12 +104,10 @@ class Calendar extends Component {
       }
       schedulerData.addEvent(newEvent)
       console.log('ADDED item: ', newEvent)
-
       //addVirtualBookingToCalendar(schedulerData, newEvent)
 
       this.calendarUpdate(schedulerData)
-      setGlobal({ newBookingEvent: newEvent })
-      //setGlobal({ bookingModalOpened: true })
+      this.dispatch.setNewBookingEvent(newEvent)
       this.dispatch.checkRoomData(newEvent)
       /* 
       const checkResponse = await checkBooking(newEvent) // checkBooking or addBooking
@@ -146,6 +119,27 @@ class Calendar extends Component {
         this.reloadBookedItems()
       } */
     }
+  }
+
+  checkEventPosibility = (alert, event) => {
+    if (!isInFuture(event.start)) {
+      alert === 'WARNING' &&
+        this.dispatch.openWarningModal({
+          opened: true,
+          content: 'datum začíná v minulosti',
+          header: 'Neplatné datum',
+        })
+      return false
+    } else if (nights(event.start, event.end) < MIN_NIGHTS) {
+      alert === 'WARNING' &&
+        this.dispatch.openWarningModal({
+          opened: true,
+          content: `minimální počet nocí jsou${MIN_NIGHTS}`,
+          header: 'Není možné',
+        })
+      return false
+    }
+    return true
   }
 
   conflictOccurred = (schedulerData, action, event, type, slotId, slotName, start, end) => {
@@ -161,96 +155,56 @@ class Calendar extends Component {
     ) */
   }
 
-  prevClick = schedulerData => {
-    schedulerData.prev()
-    schedulerData.setEvents(DemoData.events)
-    this.setState({
-      viewModel: schedulerData,
-    })
-  }
-
-  nextClick = schedulerData => {
-    schedulerData.next()
-    schedulerData.setEvents(DemoData.events)
-    this.setState({
-      viewModel: schedulerData,
-    })
-  }
-
   onViewChange = (schedulerData, view) => {
     schedulerData.setViewType(view.viewType, view.showAgenda, view.isEventPerspective)
     schedulerData.setEvents(this.global.eventsData)
-    this.setState({
-      viewModel: schedulerData,
-    })
+    this.calendarUpdate(schedulerData)
   }
 
   onSelectDate = (schedulerData, date) => {
     console.log('onSelectDate', date)
     schedulerData.setDate(date)
     schedulerData.setEvents(DemoData.events)
-    this.setState({
-      viewModel: schedulerData,
-    })
-  }
-
-  ops1 = (schedulerData, event) => {
-    alert(`You just executed ops1 to event: {id: ${event.id}, title: ${event.title}}`)
-  }
-
-  ops2 = (schedulerData, event) => {
-    alert(`You just executed ops2 to event: {id: ${event.id}, title: ${event.title}}`)
+    this.calendarUpdate(schedulerData)
   }
 
   updateEventStart = (schedulerData, event, newStart) => {
-    // if(confirm(`Do you want to adjust the start of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newStart: ${newStart}}`)) {
-    schedulerData.updateEventStart(event, newStart)
-    // }
-    this.setState({
-      viewModel: schedulerData,
-    })
+    const newEvent = { ...event, start: newStart }
+    if (this.checkEventPosibility('WARNING', newEvent)) {
+      schedulerData.updateEventStart(event, newStart)
+      this.dispatch.setNewBookingEvent(newEvent)
+      this.calendarUpdate(schedulerData)
+    }
   }
 
   updateEventEnd = (schedulerData, event, newEnd) => {
-    //if(confirm(`Do you want to adjust the end of the event? {eventId: ${event.id}, eventTitle: ${event.title}, newEnd: ${newEnd}}`)) {
-    schedulerData.updateEventEnd(event, newEnd)
-    // }
-    this.setState({
-      viewModel: schedulerData,
-    })
+    const newEvent = { ...event, end: newEnd }
+    if (this.checkEventPosibility('WARNING', newEvent)) {
+      schedulerData.updateEventEnd(event, newEnd)
+      this.dispatch.setNewBookingEvent(newEvent)
+      this.calendarUpdate(schedulerData)
+    }
   }
 
   moveEvent = (schedulerData, event, slotId, slotName, start, end) => {
-    // if(confirm(`Do you want to move the event? {eventId: ${event.id}, eventTitle: ${event.title}, newSlotId: ${slotId}, newSlotName: ${slotName}, newStart: ${start}, newEnd: ${end}`)) {
-    schedulerData.moveEvent(event, slotId, slotName, start, end)
-    this.setState({
-      viewModel: schedulerData,
-    })
-    //}
-  }
-
-  onScrollRight = (schedulerData, schedulerContent, maxScrollLeft) => {
-    if (schedulerData.ViewTypes === ViewTypes.Day) {
-      schedulerData.next()
-      schedulerData.setEvents(DemoData.events)
-      this.setState({
-        viewModel: schedulerData,
-      })
-
-      schedulerContent.scrollLeft = maxScrollLeft - 10
+    const newEvent = { ...event, end, start, slotId }
+    if (this.checkEventPosibility('WARNING', newEvent)) {
+      schedulerData.moveEvent(event, slotId, slotName, start, end)
+      this.dispatch.setNewBookingEvent(newEvent)
+      this.calendarUpdate(schedulerData)
     }
   }
 
-  onScrollLeft = (schedulerData, schedulerContent, maxScrollLeft) => {
-    if (schedulerData.ViewTypes === ViewTypes.Day) {
-      schedulerData.prev()
-      schedulerData.setEvents(DemoData.events)
-      this.setState({
-        viewModel: schedulerData,
-      })
+  prevClick = schedulerData => {
+    schedulerData.prev()
+    schedulerData.setEvents(DemoData.events)
+    this.calendarUpdate(schedulerData)
+  }
 
-      schedulerContent.scrollLeft = 10
-    }
+  nextClick = schedulerData => {
+    schedulerData.next()
+    schedulerData.setEvents(DemoData.events)
+    this.calendarUpdate(schedulerData)
   }
 }
 

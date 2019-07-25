@@ -4,7 +4,7 @@ import { DATE_DB_FORMAT, BOOK_TIME_START, BOOK_TIME_END } from '../config'
 export const nights = (startDate, endDate) => {
   let start = moment(startDate)
   let end = moment(endDate)
-  return end.diff(start, 'days')
+  return end.diff(start, 'days')+1 // TODO: something is wrong here, it can differ one day (00-23, vs 10 to 14)
 }
 
 export const setCheckInTime = start => {

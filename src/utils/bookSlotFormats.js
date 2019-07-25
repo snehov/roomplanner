@@ -35,8 +35,8 @@ export const newCreatedEvent = {
   title: 'Your booking',
   bgColor: 'purple',
   showPopover: false,
-  movable: false,
-  resizable: false,
+  movable: true,
+  resizable: true,
 }
 export const alreadyBooked = {
   id: null,

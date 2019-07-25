@@ -9,7 +9,7 @@ const BookingModal = () => {
   const [newBookingEvent, setNewBookingEvent] = useGlobal('newBookingEvent')
   const [currentBookingData] = useGlobal('currentBookingData')
   const [persons, setPersons] = useState(1)
-  console.log('persons', persons)
+
   const roomInfo =
     !isEmpty(newBookingEvent) && rooms.filter(room => room.id === newBookingEvent.resourceId)[0]
   const nightsNum = nights(newBookingEvent.start, newBookingEvent.end)

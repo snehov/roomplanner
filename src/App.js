@@ -4,9 +4,10 @@ import { useGlobal,setGlobal, addReducer, addCallback } from 'reactn'
 //import Calendar_from_node from "./Calendar/Calendar_from_node_modules";
 import Calendar from './Calendar/Calendar'
 import {BookingModal, WarningModal, BookingForm} from './components/'
+import "./reducers"
 //import './App.css';
 setGlobal({bookingModalOpened:false})
-setGlobal({warningModal:{opened:false, content:"", header:""}})
+//setGlobal({warningModal:{opened:false, content:"", header:""}})
 
 
 const App = () => {

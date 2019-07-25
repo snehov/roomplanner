@@ -15,6 +15,9 @@ addReducer('checkRoomData', async (global, dispatch, newEvent) => {
   let response = await checkBooking(newEvent)
   return { currentBookingData: (response.data) }
 })
+addReducer('setNewBookingEvent',  (global, dispatch, newEvent) => {
+  return { newBookingEvent: newEvent }
+})
 
 
 
