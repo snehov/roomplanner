@@ -10,17 +10,17 @@ setGlobal({warningModal:{opened:false, content:"", header:""}})
 
 
 const App = () => {
-  const [bookingModalOpened, setBookingModalOpen] = useGlobal('bookingModalOpened')
+  //const [bookingModalOpened, setBookingModalOpen] = useGlobal('bookingModalOpened')
   const [warningModal, setWarningModalProps] = useGlobal('warningModal')
 
   return (
     <div className="App">
-      {bookingModalOpened && <BookingModal onClose={() => setBookingModalOpen(false)} />}
+      {/* bookingModalOpened && <BookingModal onClose={() => setBookingModalOpen(false)} /> */}
       {warningModal.opened && <WarningModal onClose={() => setWarningModalProps({opened:false})} />}
         {/* <CalendarInfinite />  */}
         {/* <Calendar_from_node/>     */}
         <Calendar />
-        {/* <BookingForm /> */}
+         <BookingForm /> 
     </div>
   )
 }

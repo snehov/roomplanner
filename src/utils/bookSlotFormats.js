@@ -2,14 +2,17 @@ export const rooms = [
   {
     id: 'r1',
     name: 'První',
+    maxPersons: 3,
   },
   {
     id: 'r2',
     name: 'Druhý',
+    maxPersons: 2,
   },
   {
     id: 'r3',
     name: 'Oba',
+    maxPersons: 5,
   },
 ]
 
