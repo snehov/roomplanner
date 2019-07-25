@@ -91,12 +91,16 @@ class Calendar extends Component {
   reloadBookedItemsApply = () => {
     let schedulerData = this.state.viewModel
     schedulerData.setEvents(this.global.eventsData)
+    this.calendarUpdate(schedulerData)
+   
+  }
+  calendarUpdate = (schedulerData) => {
     this.setState({
       viewModel: schedulerData,
     })
   }
-
   newEvent = async (schedulerData, slotId, slotName, start, end, type, item) => {
+    schedulerData.removeEvent(this.global.newBookingEvent)
     let bookStart = setCheckInTime(start)
     let bookEnd = setCheckOutTime(end)
 
@@ -126,15 +130,21 @@ class Calendar extends Component {
       schedulerData.addEvent(newEvent)
       console.log('ADDED item: ', newEvent)
 
-      addVirtualBookingToCalendar(schedulerData, newEvent)
-      setGlobal({ bookingModalOpened: true })
-      const checkResponse = await addBooking(newEvent) // checkBooking or addBooking
+      //addVirtualBookingToCalendar(schedulerData, newEvent)
+
+      this.calendarUpdate(schedulerData)
+      setGlobal({ newBookingEvent: newEvent })
+      //setGlobal({ bookingModalOpened: true })
+      this.dispatch.checkRoomData(newEvent)
+      /* 
+      const checkResponse = await checkBooking(newEvent) // checkBooking or addBooking
       console.log('checkResponse', checkResponse)
+      
       if (checkResponse.data.error === 'time-slot-taken') {
         setGlobal({ bookingModalOpened: false })
         setGlobal({ warningModal: { opened: true, content: 'aktualizovany překryv', header: 'nelze!' } })
         this.reloadBookedItems()
-      }
+      } */
     }
   }
 
