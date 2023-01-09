@@ -17,7 +17,7 @@
     "react-scripts": "^3.0.1",
     "reactn": "^2.1.4",
     "reactn-devtools": "^1.0.1",
-    "rrule": "^2.6.0",
+    "rrule": "^2.7.1",
     "styled-components": "^4.3.2"
   },
   "scripts": {
